@@ -1,9 +1,11 @@
 #include <QCursor>
+#include <QPainter>
 #include <cmath>
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include "qpainter.h"
+
+#include "nodeeditor.h"
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -159,7 +161,29 @@ void MainWindow::_end_drag(QPointF mouse_stop)
         _mid_drag(mouse_stop);
     }
 }
+void MainWindow::_cancel_drag()
+{
+    // move the node back to the starting position (as if it never happened)
+    _end_drag(drag_mouse_start);
+}
 
+void MainWindow::_prompt_editor(Map_t::iterator node)
+{
+    // create the editor
+    NodeEditor editor;
+
+    editor.title(node->data.title);
+    editor.text(node->data.text);
+
+    // if the user says ok, store the changes
+    if (editor.exec() == QDialog::Accepted)
+    {
+        node->data.title = editor.title();
+        node->data.text = editor.text();
+
+        update();
+    }
+}
 
 void MainWindow::mousePressEvent(QMouseEvent *e)
 {
@@ -194,6 +218,30 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *e)
         {
             // end the drag
             _end_drag(e->pos());
+
+            e->accept();
+        }
+    }
+}
+
+void MainWindow::mouseDoubleClickEvent(QMouseEvent *e)
+{
+    // default to ignoring the event
+    e->ignore();
+
+    // if this was a left click
+    if (e->button() == Qt::MouseButton::LeftButton)
+    {
+        // cancel any drag action we might be in
+        _cancel_drag();
+
+        // get the node we're over
+        auto node = _overNode(e->pos());
+        // if we were indeed over a node
+        if (node != map.end())
+        {
+            // open the editor for this node
+            _prompt_editor(node);
 
             e->accept();
         }

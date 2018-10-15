@@ -74,6 +74,10 @@ private: // -- helpers -- //
     void _begin_drag(Map_t::iterator node, QPointF mouse_start);
     void _mid_drag(QPointF mouse_stop);
     void _end_drag(QPointF mouse_stop);
+    void _cancel_drag();
+
+    // opens an editor interface for the given node
+    void _prompt_editor(Map_t::iterator node);
 
 protected: // -- event overrides -- //
 
@@ -81,6 +85,8 @@ protected: // -- event overrides -- //
 
     virtual void mousePressEvent(QMouseEvent *e) override;
     virtual void mouseReleaseEvent(QMouseEvent *e) override;
+
+    virtual void mouseDoubleClickEvent(QMouseEvent *e) override;
 
     virtual void timerEvent(QTimerEvent *e) override;
 };

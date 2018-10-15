@@ -26,14 +26,17 @@ CONFIG += c++11
 
 SOURCES += \
         main.cpp \
-        mainwindow.cpp
+        mainwindow.cpp \
+    nodeeditor.cpp
 
 HEADERS += \
         mainwindow.h \
-    adventure_map.h
+    adventure_map.h \
+    nodeeditor.h
 
 FORMS += \
-        mainwindow.ui
+        mainwindow.ui \
+    nodeeditor.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
