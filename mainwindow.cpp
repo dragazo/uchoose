@@ -1,7 +1,10 @@
 #include <QCursor>
 #include <QPainter>
-#include <cmath>
+#include <QRegion>
 #include <QStatusBar>
+
+#include <cmath>
+#include <algorithm>
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
@@ -94,10 +97,12 @@ void MainWindow::performSelect(QRectF rect, bool add)
         // if this is in the rectangle
         if (intersects(rect, i->data.point))
         {
-            // add it to the selection
-            selection.push_back(i);
+            // add it to the selection if it's not already in there
+            if (std::none_of(selection.begin(), selection.end(), [i](Map_t::iterator other){return other == i;})) selection.push_back(i);
         }
     }
+
+    this->setWindowTitle(QString('a'+selection.size()));
 }
 
 // --------------- //
@@ -170,11 +175,19 @@ void MainWindow::paintEvent(QPaintEvent *e)
     // paint each arc
     for (const auto &i : map) for (const auto &j : i.arcs) paintArc(i, j, painter);
 
+    // for each selected node
+    for (auto i : selection)
+    {
+        // draw a halo around it
+        painter.drawEllipse(QRectF(i->data.point.x() - SelectHaloOuterRadius, i->data.point.y() - SelectHaloOuterRadius,
+                                   2 * SelectHaloOuterRadius, 2 * SelectHaloOuterRadius));
+    }
+
     // if we're in a selection
     if (select_timer_id != 0)
     {
         // paint the selection rect
-        painter.drawRect(boundingRect(select_mouse_start, select_mouse_stop));
+        painter.drawRect(boundingRect(select_start, select_stop));
     }
 }
 
@@ -190,10 +203,27 @@ void MainWindow::_begin_drag(Map_t::iterator node, QPointF mouse_start)
     if (drag_timer_id == 0)
     {
         // record initial data
-        drag_node = node;
-        drag_node_start = node->data.point;
-        drag_mouse_start = mouse_start;
-        drag_mouse_stop = mouse_start;
+        drag_start = mouse_start;
+        drag_stop = mouse_start;
+
+        // if the drag node is in the selection
+        if (std::any_of(selection.begin(), selection.end(), [node](Map_t::iterator o){return o==node;}))
+        {
+            // populate drag_info
+            drag_info.resize(selection.size());
+            for (std::size_t i = 0; i < selection.size(); ++i)
+                drag_info[i] = {selection[i], selection[i]->data.point};
+        }
+        // otherwise drag node is not selected
+        else
+        {
+            // deselect everything
+            selection.clear();
+
+            // only the dragged node will be dragged
+            drag_info.resize(1);
+            drag_info[0] = {node, node->data.point};
+        }
 
         // start the timer
         drag_timer_id = startTimer(DragSleepTime);
@@ -202,12 +232,18 @@ void MainWindow::_begin_drag(Map_t::iterator node, QPointF mouse_start)
 void MainWindow::_mid_drag(QPointF mouse_stop)
 {
     // for efficiency, only do this if the mouse moved
-    if (drag_mouse_stop != mouse_stop)
+    if (drag_stop != mouse_stop)
     {
-        drag_mouse_stop = mouse_stop;
+        drag_stop = mouse_stop;
+
+        // compute the net position difference
+        QPointF dr = mouse_stop - drag_start;
 
         // perform the node repositioning
-        drag_node->data.point = drag_node_start + (mouse_stop - drag_mouse_start);
+        for (auto &i : drag_info)
+            i.node->data.point = i.origin + dr;
+
+        // update display
         update();
     }
 }
@@ -226,8 +262,8 @@ void MainWindow::_end_drag(QPointF mouse_stop)
 }
 void MainWindow::_cancel_drag()
 {
-    // move the node back to the starting position (as if it never happened)
-    _end_drag(drag_mouse_start);
+    // drag back to the starting position (as if nothing happened)
+    _end_drag(drag_start);
 }
 
 void MainWindow::_begin_select(QPointF mouse_start)
@@ -236,8 +272,8 @@ void MainWindow::_begin_select(QPointF mouse_start)
     if (select_timer_id == 0)
     {
         // record the initial data
-        select_mouse_start = mouse_start;
-        select_mouse_stop = mouse_start;
+        select_start = mouse_start;
+        select_stop = mouse_start;
 
         // start the timer
         select_timer_id = startTimer(SelectSleepTime);
@@ -246,9 +282,9 @@ void MainWindow::_begin_select(QPointF mouse_start)
 void MainWindow::_mid_select(QPointF mouse_stop)
 {
     // for efficiency, only do this if the mouse moved
-    if (select_mouse_stop != mouse_stop)
+    if (select_stop != mouse_stop)
     {
-        select_mouse_stop = mouse_stop;
+        select_stop = mouse_stop;
 
         // redraw
         update();
@@ -264,7 +300,8 @@ void MainWindow::_end_select(QPointF mouse_stop)
         select_timer_id = 0;
 
         // perform the selection
-        performSelect(boundingRect(select_mouse_start, mouse_stop), false);
+        performSelect(boundingRect(select_start, mouse_stop),
+                      QApplication::keyboardModifiers() & Qt::ControlModifier);
 
         // update the frame
         update();

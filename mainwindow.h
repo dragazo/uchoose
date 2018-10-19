@@ -2,7 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <qpainter.h>
+#include <QPainter>
 #include <QMouseEvent>
 #include <QPointF>
 #include <QTimerEvent>
@@ -25,6 +25,9 @@ private: // -- settings -- //
     static constexpr qreal ArrowHeight = 16; // the height of an arc arrow
     static constexpr qreal ArrowRecess = 5;  // the recess amount for the very tip of the arrow
 
+    static constexpr qreal SelectHaloInnerRadius = 30; // the inner radius for a selection halo
+    static constexpr qreal SelectHaloOuterRadius = 35; // the outer radius for a selection halo
+
     static constexpr int DragSleepTime = 16;   // the frequency of drag   action frame updates (milliseconds)
     static constexpr int SelectSleepTime = 16; // the frequency of select action frame updates (milliseconds)
 
@@ -46,21 +49,27 @@ private: // -- types -- //
     typedef Map_t::Node Node_t;
     typedef Map_t::Arc  Arc_t;
 
+    // the block of info used for drag events
+    struct DragInfo
+    {
+        Map_t::iterator node;   // the node being dragged
+        QPointF         origin; // the original position before the drag began
+    };
+
 private: // -- data -- //
 
     Ui::MainWindow *ui; // ui component (generated)
 
     Map_t map; // the adventure map to use for execution/rendering
 
-    int drag_timer_id = 0;     // the timer for the drag updater (zero if we're not in a drag event)
-    Map_t::iterator drag_node; // iterator to the node being dragged (undefined if not in drag action)
-    QPointF drag_node_start;   // the position of the node when the drag started (und if not in drag)
-    QPointF drag_mouse_start;  // the position of the mouse when the drag started (und. etc.)
-    QPointF drag_mouse_stop;   // the current stop position of the drag action.
+    int drag_timer_id = 0; // the timer for the drag updater (zero if we're not in a drag event)
+    QPointF drag_start;    // the starting position of the drag
+    QPointF drag_stop;     // the ending position of the drag
+    std::vector<DragInfo> drag_info; // the info for each drag entity
 
-    int select_timer_id = 0;    // the timer for the select updater (zero if we're not in a select event)
-    QPointF select_mouse_start; // the mouse start point for a select event
-    QPointF select_mouse_stop;  // the current stop position of the select action.
+    int select_timer_id = 0;  // the timer for the select updater (zero if we're not in a select event)
+    QPointF select_start; // the mouse start point for a select event
+    QPointF select_stop;  // the current stop position of the select action.
 
     std::vector<Map_t::iterator> selection; // all the nodes that are currently selected
 
