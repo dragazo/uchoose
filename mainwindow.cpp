@@ -11,6 +11,30 @@
 
 #include "nodeeditor.h"
 
+// -------------- //
+
+// -- settings -- //
+
+// -------------- //
+
+const QBrush NodeBrush(Qt::NoBrush);
+const QPen   NodePen(QBrush(Qt::black), 3);
+
+const QBrush ArcBrush(Qt::black);
+const QPen   ArcPen(ArcBrush, 3, Qt::SolidLine, Qt::FlatCap, Qt::PenJoinStyle::MiterJoin);
+
+const QBrush SelectedNodeBrush(Qt::NoBrush);
+const QPen   SelectedNodePen(QBrush(0xefb12b), 3, Qt::DashDotLine);
+
+const QBrush SelectionRectBrush(Qt::NoBrush);
+const QPen   SelectionRectPen(QBrush(0xefb12b), 3, Qt::DashDotLine);
+
+// ----------------- //
+
+// -- ctor / dtor -- //
+
+// ----------------- //
+
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
@@ -166,16 +190,18 @@ void MainWindow::paintEvent(QPaintEvent *e)
     QPainter painter(this);
 
     // paint each node
+    painter.setBrush(NodeBrush);
+    painter.setPen(NodePen);
     for (const auto &i : map) paintNode(i, painter);
 
-    QBrush brush(QColor(197, 70, 250));
-    QPen arc_pen(brush, 4, Qt::PenStyle::SolidLine, Qt::PenCapStyle::FlatCap, Qt::PenJoinStyle::MiterJoin);
-    painter.setPen(arc_pen);
-
     // paint each arc
+    painter.setBrush(ArcBrush);
+    painter.setPen(ArcPen);
     for (const auto &i : map) for (const auto &j : i.arcs) paintArc(i, j, painter);
 
     // for each selected node
+    painter.setBrush(SelectedNodeBrush);
+    painter.setPen(SelectedNodePen);
     for (auto i : selection)
     {
         // draw a halo around it
@@ -184,6 +210,8 @@ void MainWindow::paintEvent(QPaintEvent *e)
     }
 
     // if we're in a selection
+    painter.setBrush(SelectionRectBrush);
+    painter.setPen(SelectionRectPen);
     if (select_timer_id != 0)
     {
         // paint the selection rect
