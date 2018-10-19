@@ -17,6 +17,17 @@
 
 // -------------- //
 
+constexpr qreal NodeRadius = 25; // the radius of a node in pixels
+
+constexpr qreal ArrowWidth = 4;   // the radius of an arc arrow
+constexpr qreal ArrowHeight = 16; // the height of an arc arrow
+constexpr qreal ArrowRecess = 5;  // the recess amount for the very tip of the arrow
+
+constexpr qreal SelectHaloRadius = 30; // the radius for a selection halo
+
+constexpr int DragSleepTime = 16;   // the frequency of drag   action frame updates (milliseconds)
+constexpr int SelectSleepTime = 16; // the frequency of select action frame updates (milliseconds)
+
 const QBrush NodeBrush(Qt::NoBrush);
 const QPen   NodePen(QBrush(Qt::black), 3);
 
@@ -110,23 +121,71 @@ MainWindow::Map_t::iterator MainWindow::overNode(QPointF point)
     return i;
 }
 
-void MainWindow::performSelect(QRectF rect, bool add)
+void MainWindow::performSelect(QRectF rect, bool mod)
 {
-    // if we're not adding, start by clearing the selection
-    if (!add) selection.clear();
-
-    // for each node
-    for (auto i = map.begin(), _end = map.end(); i != _end; ++i)
+    // if we're modifying the current selection
+    if (mod)
     {
-        // if this is in the rectangle
-        if (intersects(rect, i->data.point))
+        // for each node
+        for (auto i = map.begin(), _end = map.end(); i != _end; ++i)
         {
-            // add it to the selection if it's not already in there
-            if (std::none_of(selection.begin(), selection.end(), [i](Map_t::iterator other){return other == i;})) selection.push_back(i);
+            // if this is in the rectangle
+            if (intersects(rect, i->data.point))
+            {
+                // find an equivalent item already in the selection
+                auto eq = std::find(selection.begin(), selection.end(), i);
+
+                // if it's not in the selection, add it
+                if (eq == selection.end()) selection.push_back(i);
+                // otherwise it's already selected - remove it
+                else selection.erase(eq);
+            }
+        }
+    }
+    // otherwise we're starting a new selection
+    else
+    {
+        // clear the old selection
+        selection.clear();
+
+        // for each node
+        for (auto i = map.begin(), _end = map.end(); i != _end; ++i)
+        {
+            // if this is in the rectangle
+            if (intersects(rect, i->data.point))
+            {
+                // add it to the selection
+                selection.push_back(i);
+            }
         }
     }
 
-    this->setWindowTitle(QString('a'+selection.size()));
+    update();
+}
+void MainWindow::performSelect(Map_t::iterator node, bool mod)
+{
+    // if we're modifying the current selection
+    if (mod)
+    {
+        // find an equivalent item already in the selection
+        auto eq = std::find(selection.begin(), selection.end(), node);
+
+        // if it's not in the selection, add it
+        if (eq == selection.end()) selection.push_back(node);
+        // otherwise it's already selected - remove it
+        else selection.erase(eq);
+    }
+    // otherwise we're starting a new selection
+    else
+    {
+        // clear the old selection
+        selection.clear();
+
+        // add it to the selection
+        selection.push_back(node);
+    }
+
+    update();
 }
 
 // --------------- //
@@ -205,8 +264,8 @@ void MainWindow::paintEvent(QPaintEvent *e)
     for (auto i : selection)
     {
         // draw a halo around it
-        painter.drawEllipse(QRectF(i->data.point.x() - SelectHaloOuterRadius, i->data.point.y() - SelectHaloOuterRadius,
-                                   2 * SelectHaloOuterRadius, 2 * SelectHaloOuterRadius));
+        painter.drawEllipse(QRectF(i->data.point.x() - SelectHaloRadius, i->data.point.y() - SelectHaloRadius,
+                                   2 * SelectHaloRadius, 2 * SelectHaloRadius));
     }
 
     // if we're in a selection
@@ -233,6 +292,7 @@ void MainWindow::_begin_drag(Map_t::iterator node, QPointF mouse_start)
         // record initial data
         drag_start = mouse_start;
         drag_stop = mouse_start;
+        drag_moved = false;
 
         // if the drag node is in the selection
         if (std::any_of(selection.begin(), selection.end(), [node](Map_t::iterator o){return o==node;}))
@@ -245,9 +305,6 @@ void MainWindow::_begin_drag(Map_t::iterator node, QPointF mouse_start)
         // otherwise drag node is not selected
         else
         {
-            // deselect everything
-            selection.clear();
-
             // only the dragged node will be dragged
             drag_info.resize(1);
             drag_info[0] = {node, node->data.point};
@@ -263,6 +320,7 @@ void MainWindow::_mid_drag(QPointF mouse_stop)
     if (drag_stop != mouse_stop)
     {
         drag_stop = mouse_stop;
+        drag_moved = true;
 
         // compute the net position difference
         QPointF dr = mouse_stop - drag_start;
@@ -330,9 +388,6 @@ void MainWindow::_end_select(QPointF mouse_stop)
         // perform the selection
         performSelect(boundingRect(select_start, mouse_stop),
                       QApplication::keyboardModifiers() & Qt::ControlModifier);
-
-        // update the frame
-        update();
     }
 }
 void MainWindow::_cancel_select()
@@ -391,8 +446,24 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *e)
     // if the released button was a left click
     if (e->button() == Qt::MouseButton::LeftButton)
     {
-        // if we were in a drag action, end it
-        if (drag_timer_id != 0) _end_drag(e->pos());
+        // if we were in a drag action
+        if (drag_timer_id != 0)
+        {
+            // record the drag_moved flag and end the drag action
+            bool moved = drag_moved;
+            _end_drag(e->pos());
+
+            // if we didn't move
+            if (!moved)
+            {
+                // get the node we're over
+                auto node = overNode(e->pos());
+
+                // perform a selection on it (sanity check for null)
+                if (node != map.end()) performSelect(node, QApplication::keyboardModifiers() & Qt::ControlModifier);
+            }
+        }
+
         // if we were in a select action, end it
         if (select_timer_id != 0) _end_select(e->pos());
     }

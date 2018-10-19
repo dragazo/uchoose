@@ -17,20 +17,6 @@ class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
-private: // -- settings -- //
-
-    static constexpr qreal NodeRadius = 25; // the radius of a node in pixels
-
-    static constexpr qreal ArrowWidth = 4;   // the radius of an arc arrow
-    static constexpr qreal ArrowHeight = 16; // the height of an arc arrow
-    static constexpr qreal ArrowRecess = 5;  // the recess amount for the very tip of the arrow
-
-    static constexpr qreal SelectHaloInnerRadius = 30; // the inner radius for a selection halo
-    static constexpr qreal SelectHaloOuterRadius = 35; // the outer radius for a selection halo
-
-    static constexpr int DragSleepTime = 16;   // the frequency of drag   action frame updates (milliseconds)
-    static constexpr int SelectSleepTime = 16; // the frequency of select action frame updates (milliseconds)
-
 private: // -- types -- //
 
     struct NodePayload
@@ -65,6 +51,7 @@ private: // -- data -- //
     int drag_timer_id = 0; // the timer for the drag updater (zero if we're not in a drag event)
     QPointF drag_start;    // the starting position of the drag
     QPointF drag_stop;     // the ending position of the drag
+    bool    drag_moved;    // marks if the mouse actually moved during the drag event (at all, not just net)
     std::vector<DragInfo> drag_info; // the info for each drag entity
 
     int select_timer_id = 0;  // the timer for the select updater (zero if we're not in a select event)
@@ -92,8 +79,11 @@ private: // -- helpers -- //
     Map_t::iterator overNode(QPointF point);
 
     // performs a selection action for every node in the given rectangle.
-    // if add is true, adds items to the current selection, otherwise clears current selection before adding the new selection.
-    void performSelect(QRectF rect, bool add);
+    // if <mod> is false, clears the current selection and selects the items.
+    // if <mod> is true, toggles items into / out of the selection.
+    void performSelect(QRectF rect, bool mod);
+    // as the performSelect() taking rect, but only affects a single node
+    void performSelect(Map_t::iterator node, bool mod);
 
     // helpers for painting nodes and arcs
     void paintNode(const Node_t &node, QPainter &paint);
