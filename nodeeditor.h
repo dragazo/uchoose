@@ -14,7 +14,7 @@ class NodeEditor : public QDialog
 
 public:
     explicit NodeEditor(QWidget *parent = nullptr);
-    ~NodeEditor();
+    virtual ~NodeEditor() override;
 
 public: // -- accessors -- //
 
@@ -26,7 +26,8 @@ public: // -- accessors -- //
     QString text() const;
     void text(const QString &str);
 
-private slots:
+private slots: // -- auto-linked slots -- //
+
     void on_CancelButton_clicked();
 
     void on_OKButton_clicked();

@@ -81,14 +81,17 @@ public: // -- iterators -- //
 public: // -- add / remove -- //
 
     // adds the specified node to the graph.
+    // WARNING: invalidates iterators
     void push_back(const Node &node) { _nodes.push_back(node); }
 
     // adds the specified node to the graph.
+    // WARNING: invalidates iterators
     template<typename ...Args>
     void emplace_back(Args &&...args) { _nodes.emplace_back(std::forward<Args>(args)...); }
 
     // removes the specified nodes from the graph. any arcs that reference it are deleted as well. no bounds checking.
     // arcs in other nodes are updated to reflect the change. arcs pointing to the removed node are removed as well.
+    // WARNING: invalidates iterators
     void erase(const_iterator iter)
     {
         // convert iterator into a position

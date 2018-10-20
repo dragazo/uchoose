@@ -6,6 +6,7 @@
 #include <QMouseEvent>
 #include <QPointF>
 #include <QTimerEvent>
+#include <QMenu>
 
 #include "adventure_map.h"
 
@@ -60,6 +61,9 @@ private: // -- data -- //
 
     std::vector<Map_t::iterator> selection; // all the nodes that are currently selected
 
+    QPoint context_point;      // the position of the currently-opened context menu
+    QMenu *background_context; // the context menu to use for right clicking in the background
+
 public: // -- ctor / dtor / asgn -- //
 
     explicit MainWindow(QWidget *parent = nullptr);
@@ -103,6 +107,13 @@ private: // -- helpers -- //
 
     // opens an editor interface for the given node
     void prompt_editor(Map_t::iterator node);
+
+    // opens the main context menu at the specified point
+    void openMainContext(QPoint point);
+
+private slots: // -- private slot helpers -- //
+
+    void background_context_add_node();
 
 protected: // -- event overrides -- //
 

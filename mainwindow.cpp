@@ -2,6 +2,9 @@
 #include <QPainter>
 #include <QRegion>
 #include <QStatusBar>
+#include <QMenu>
+#include <QAction>
+#include <QActionGroup>
 
 #include <cmath>
 #include <algorithm>
@@ -50,7 +53,15 @@ MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
+    // -- set up auto-generated ui -- //
+
     ui->setupUi(this);
+
+    // -- build the background context menu -- //
+
+    background_context = new QMenu(this);
+
+    background_context->addAction("Add Node", this, SLOT(background_context_add_node()));
 
     // !! TEMP STUFF !! //
 
@@ -425,10 +436,34 @@ void MainWindow::prompt_editor(Map_t::iterator node)
     }
 }
 
+void MainWindow::openMainContext(QPoint point)
+{
+    // store the context point
+    context_point = point;
+
+    // open the context menu (convert to screen coords)
+    background_context->popup(point + this->pos());
+}
+void MainWindow::background_context_add_node()
+{
+    // create a default node
+    Node_t node;
+    node.data.point = context_point;
+
+    // add it to the map
+    map.emplace_back(std::move(node));
+
+    // THIS INVALIDATES ITERATORS - clear the selection
+    selection.clear();
+
+    // update the display
+    update();
+}
+
 void MainWindow::mousePressEvent(QMouseEvent *e)
 {
     // if this was a left click
-    if (e->button() == Qt::MouseButton::LeftButton)
+    if (e->button() == Qt::LeftButton)
     {
         // get the node we're over (may not be)
         auto node = overNode(e->pos());
@@ -437,6 +472,15 @@ void MainWindow::mousePressEvent(QMouseEvent *e)
         if (node != map.end()) _begin_drag(node, e->pos());
         // otherwise begin a selection
         else _begin_select(e->pos());
+    }
+    // if this was a right click
+    else if(e->button() == Qt::RightButton)
+    {
+        // get the node we're over (may not be)
+        auto node = overNode(e->pos());
+
+        // if we weren't over a node, open the main context menu
+        if (node == map.end()) openMainContext(e->pos());
     }
 
     e->accept();
