@@ -77,19 +77,29 @@
        <verstretch>3</verstretch>
       </sizepolicy>
      </property>
+     <property name="verticalScrollBarPolicy">
+      <enum>Qt::ScrollBarAsNeeded</enum>
+     </property>
      <property name="widgetResizable">
       <bool>true</bool>
      </property>
-     <widget class="QWidget" name="scrollAreaWidgetContents">
+     <widget class="QWidget" name="ChoicesScrollAreaContents">
       <property name="geometry">
        <rect>
         <x>0</x>
         <y>0</y>
         <width>408</width>
-        <height>275</height>
+        <height>253</height>
        </rect>
       </property>
      </widget>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="AddArcButton">
+     <property name="text">
+      <string>Add Choice</string>
+     </property>
     </widget>
    </item>
    <item>

@@ -80,6 +80,7 @@ MainWindow::MainWindow(QWidget *parent) :
     node.data.title = "second";
     node.data.text = "hello this is fred";
     node.data.point = QPoint(200, 80);
+    node.arcs.clear();
     map.push_back(node);
 }
 
@@ -423,6 +424,7 @@ void MainWindow::prompt_editor(Map_t::iterator node)
     // provide editor with the current data
     editor.title(node->data.title);
     editor.text(node->data.text);
+    for (const auto &arc : node->arcs) editor.addArc(arc.dest, arc.data.text);
 
     // if the user says ok, store the changes
     if (editor.exec() == QDialog::Accepted)
@@ -430,6 +432,19 @@ void MainWindow::prompt_editor(Map_t::iterator node)
         // save the new data
         node->data.title = editor.title();
         node->data.text = editor.text();
+
+        node->arcs.clear();
+        auto arcs = editor.getArcs();
+        Arc_t arc;
+        for (const auto &i : arcs)
+        {
+            setWindowTitle(i.text);
+
+            arc.dest = i.dest;
+            arc.data.text = i.text;
+
+            node->arcs.push_back(arc);
+        }
 
         // redraw with new data
         update();
